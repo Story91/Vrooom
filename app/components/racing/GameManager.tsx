@@ -39,6 +39,8 @@ export interface GameSession {
 export interface PlayerProfile {
   fid: string; // Farcaster ID
   username: string; // From Farcaster profile
+  nickname: string; // Display nickname for the game
+  address: string; // Wallet address
   displayName?: string; // From Farcaster profile
   totalGames: number;
   bestScore: number;
@@ -94,8 +96,10 @@ export function GameManager() {
     
     // Create profile with Farcaster data
     const newProfile: PlayerProfile = {
-      fid: fid,
+      fid: fid.toString(),
       username: `racer_${fid}`, // Default username, can be enhanced with more Farcaster data
+      nickname: `Racer ${fid}`, // Default nickname
+      address: address || '', // Use connected wallet address
       displayName: `Racer ${fid}`,
       totalGames: 0,
       bestScore: 0,
@@ -113,11 +117,15 @@ export function GameManager() {
     });
 
     setGameState('menu');
-  }, [context, sendNotification]);
+  }, [context, sendNotification, address]);
 
   // View Farcaster profile
   const handleViewProfile = useCallback((fid?: string) => {
-    viewProfile(fid);
+    if (fid) {
+      viewProfile(parseInt(fid));
+    } else {
+      viewProfile();
+    }
   }, [viewProfile]);
 
   // Start new game session
@@ -126,7 +134,7 @@ export function GameManager() {
 
     const session: GameSession = {
       id: `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      playerId: context.user.fid,
+      playerId: context.user.fid.toString(),
       score: 0,
       distance: 0,
       time: 0,
@@ -317,7 +325,7 @@ export function GameManager() {
           <div>Connected: {isConnected ? 'Yes' : 'No'}</div>
           <div>Profile: {playerProfile?.username || 'None'}</div>
           <div>Added: {context?.client?.added ? 'Yes' : 'No'}</div>
-          <div>Location: {context?.location || 'Unknown'}</div>
+          <div>Location: {typeof context?.location === 'string' ? context.location : JSON.stringify(context?.location) || 'Unknown'}</div>
         </div>
       )}
     </div>

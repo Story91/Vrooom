@@ -483,7 +483,9 @@ export function RacingGameCore({
         drawGround($.ctx, $.state.offset, $.colors.ground, $.colors.groundDark, $.canvas.width);
         
         drawRoad($.settings.road.min + 6, $.settings.road.max + 36, 10, $.colors.roadLine);
-        drawGround($.ctx2, $.state.offset, $.colors.roadLine, $.colors.road, $.canvas.width);
+        if ($.ctx2) {
+          drawGround($.ctx2, $.state.offset, $.colors.roadLine, $.colors.road, $.canvas.width);
+        }
         drawRoad($.settings.road.min, $.settings.road.max, 10, $.colors.road);
         drawRoad(3, 24, 0, $.ctx.createPattern($.canvas2!, 'repeat')!);
         drawCar();

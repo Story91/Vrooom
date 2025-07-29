@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "../DemoComponents";
-import { PlayerProfile, GameSession } from "./GameManager";
+import { PlayerProfile } from "./GameManager";
 
 interface LeaderboardScreenProps {
   currentPlayer: PlayerProfile;
@@ -25,11 +25,7 @@ export function LeaderboardScreen({ currentPlayer, onBack }: LeaderboardScreenPr
   const [activeTab, setActiveTab] = useState<'score' | 'distance' | 'speed'>('score');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadLeaderboard();
-  }, [activeTab]);
-
-  const loadLeaderboard = () => {
+  const loadLeaderboard = useCallback(() => {
     setLoading(true);
     
     // Simulate loading from localStorage and generate sample data
@@ -54,8 +50,10 @@ export function LeaderboardScreen({ currentPlayer, onBack }: LeaderboardScreenPr
       ];
 
       // Add sample players if they don't exist
-      samplePlayers.forEach((sample, index) => {
+      samplePlayers.forEach((sample) => {
         allProfiles.push({
+          fid: `${Math.random().toString(16).slice(2, 10)}`,
+          username: sample.nickname.toLowerCase(),
           address: `0x${Math.random().toString(16).slice(2, 10)}`,
           nickname: sample.nickname,
           bestScore: sample.bestScore,
@@ -67,7 +65,7 @@ export function LeaderboardScreen({ currentPlayer, onBack }: LeaderboardScreenPr
       });
 
       // Sort and rank based on active tab
-      let sortedProfiles = [...allProfiles];
+      const sortedProfiles = [...allProfiles];
       switch (activeTab) {
         case 'score':
           sortedProfiles.sort((a, b) => b.bestScore - a.bestScore);
@@ -80,6 +78,7 @@ export function LeaderboardScreen({ currentPlayer, onBack }: LeaderboardScreenPr
           break;
       }
 
+      // Convert to leaderboard entries with rank
       const leaderboardData: LeaderboardEntry[] = sortedProfiles.map((profile, index) => ({
         rank: index + 1,
         nickname: profile.nickname,
@@ -94,7 +93,11 @@ export function LeaderboardScreen({ currentPlayer, onBack }: LeaderboardScreenPr
       setLeaderboard(leaderboardData);
       setLoading(false);
     }, 1000);
-  };
+  }, [activeTab, currentPlayer]);
+
+  useEffect(() => {
+    loadLeaderboard();
+  }, [activeTab, loadLeaderboard]);
 
   const formatAddress = (address: string) => 
     `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -156,7 +159,7 @@ export function LeaderboardScreen({ currentPlayer, onBack }: LeaderboardScreenPr
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
+            onClick={() => setActiveTab(tab.key as 'score' | 'distance' | 'speed')}
             className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
               activeTab === tab.key
                 ? 'bg-[var(--app-accent)] text-white shadow-sm'

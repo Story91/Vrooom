@@ -33,7 +33,7 @@ import { Button } from "../DemoComponents";
 interface LoginScreenProps {
   onLoginSuccess: (transactionHash?: string) => void;
   onBack: () => void;
-  context: any; // MiniKit context
+  context: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- MiniKit FrameContext is complex and can be null
   onViewProfile: (fid?: string) => void;
 }
 
@@ -114,9 +114,9 @@ export function LoginScreen({
 
       {/* Progress Steps */}
       <div className="mb-8 flex items-center justify-center space-x-4">
-        <div className={`flex items-center space-x-2 ${step === 'connect' ? 'text-[var(--app-accent)]' : step !== 'connect' ? 'text-green-500' : 'text-[var(--app-foreground-muted)]'}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === 'connect' ? 'bg-[var(--app-accent)] text-white' : step !== 'connect' ? 'bg-green-500 text-white' : 'bg-[var(--app-card-bg)] border border-[var(--app-card-border)]'}`}>
-            {step !== 'connect' ? '✓' : '1'}
+        <div className={`flex items-center space-x-2 ${step === 'connect' ? 'text-[var(--app-accent)]' : (step === 'farcaster' || step === 'transaction') ? 'text-green-500' : 'text-[var(--app-foreground-muted)]'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === 'connect' ? 'bg-[var(--app-accent)] text-white' : (step === 'farcaster' || step === 'transaction') ? 'bg-green-500 text-white' : 'bg-[var(--app-card-bg)] border border-[var(--app-card-border)]'}`}>
+            {(step === 'farcaster' || step === 'transaction') ? '✓' : '1'}
           </div>
           <span className="text-sm font-medium">Connect</span>
         </div>
@@ -208,7 +208,7 @@ export function LoginScreen({
               ) : (
                 <div className="space-y-3">
                   <p className="text-[var(--app-foreground-muted)] text-sm">
-                    Make sure you're accessing this via Farcaster to get your profile data
+                    Make sure you&apos;re accessing this via Farcaster to get your profile data
                   </p>
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-blue-700 text-sm">
@@ -286,9 +286,8 @@ export function LoginScreen({
                   <TransactionButton 
                     className="w-full text-white text-sm bg-gray-500 hover:bg-gray-600 rounded-lg py-3"
                     disabled={isLoggingIn}
-                  >
-                    Register with Transaction
-                  </TransactionButton>
+                    text="Register with Transaction"
+                  />
                   <TransactionStatus>
                     <TransactionStatusAction />
                     <TransactionStatusLabel />

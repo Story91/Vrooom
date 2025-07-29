@@ -294,11 +294,6 @@ function drawMountain(pos, height, width) {
   $.ctx.fill();
 }
 
-function drawSky() {
-  $.ctx.fillStyle = $.colors.sky;
-  $.ctx.fillRect(0, 0, $.canvas.width, $.settings.skySize);
-}
-
 function drawRoad(min, max, squishFactor, color) {
   var basePos = $.canvas.width + $.state.xpos;
   
