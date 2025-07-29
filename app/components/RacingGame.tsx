@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "./DemoComponents";
 
 interface GameControls {
   start: () => void;
@@ -13,7 +12,6 @@ export function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameControlsRef = useRef<GameControls | null>(null);
   const [gameState, setGameState] = useState<'playing' | 'paused' | 'menu'>('menu');
-  const [speed, setSpeed] = useState(0);
   const leftControlRef = useRef<HTMLDivElement>(null);
   const rightControlRef = useRef<HTMLDivElement>(null);
 
@@ -205,7 +203,7 @@ export function RacingGame() {
       $.state.xpos = clamp($.state.xpos, -400, 400);
       
       // Update React state
-      setSpeed(Math.floor($.state.speed));
+      // setSpeed(Math.floor($.state.speed)); // This line was removed as per the edit hint
     }
 
     function drawMountain(pos: number, height: number, width: number) {
@@ -495,7 +493,7 @@ export function RacingGame() {
       $.state.offset = 0;
       $.state.bgpos = 0;
       setGameState('menu');
-      setSpeed(0);
+      // setSpeed(0); // This line was removed as per the edit hint
       
       // Redraw initial state
       $.ctx.clearRect(0, 0, $.canvas.width, $.canvas.height);
@@ -583,10 +581,6 @@ export function RacingGame() {
     } else {
       gameControlsRef.current?.pause();
     }
-  };
-
-  const handleReset = () => {
-    gameControlsRef.current?.reset();
   };
 
   return (
