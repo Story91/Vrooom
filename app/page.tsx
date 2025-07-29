@@ -3,7 +3,6 @@
 import {
   useMiniKit,
   useAddFrame,
-  useViewProfile,
 } from "@coinbase/onchainkit/minikit";
 import {
   Name,
@@ -18,17 +17,33 @@ import {
   WalletDropdown,
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
+import {
+  Transaction,
+  TransactionButton,
+  TransactionToast,
+  TransactionToastAction,
+  TransactionToastIcon,
+  TransactionToastLabel,
+  TransactionError,
+  TransactionResponse,
+  TransactionStatusAction,
+  TransactionStatusLabel,
+  TransactionStatus,
+} from "@coinbase/onchainkit/transaction";
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useAccount } from "wagmi";
+import { useNotification } from "@coinbase/onchainkit/minikit";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
-import { GameManager } from "./components/racing/GameManager";
+import { RacingGame } from "./components/RacingGame";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
+  const { address } = useAccount();
 
   const addFrame = useAddFrame();
-  const viewProfile = useViewProfile();
+  const sendNotification = useNotification();
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -40,10 +55,6 @@ export default function App() {
     const frameAdded = await addFrame();
     setFrameAdded(Boolean(frameAdded));
   }, [addFrame]);
-
-  const handleViewProfile = useCallback(() => {
-    viewProfile();
-  }, [viewProfile]);
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
@@ -72,58 +83,93 @@ export default function App() {
     return null;
   }, [context, frameAdded, handleAddFrame]);
 
+  // Transaction call - sending 0 ETH to self
+  const calls = useMemo(() => address
+    ? [
+        {
+          to: address,
+          data: "0x" as `0x${string}`,
+          value: BigInt(0),
+        },
+      ]
+    : [], [address]);
+
+  const handleTransactionSuccess = useCallback(async (response: TransactionResponse) => {
+    const transactionHash = response.transactionReceipts[0].transactionHash;
+    
+    console.log(`Racing transaction successful: ${transactionHash}`);
+
+    await sendNotification({
+      title: "🏁 Transaction Complete!",
+      body: `You successfully completed a racing transaction! ${transactionHash.slice(0, 10)}...`,
+    });
+  }, [sendNotification]);
+
   return (
-    <div className="flex flex-col h-screen font-sans text-[var(--app-foreground)] bg-gradient-to-br from-[var(--app-background)] via-[var(--app-background)] to-[var(--app-gray)]">
-      {/* Header - Compact for mini app */}
-      <header className="flex justify-between items-center px-4 py-2 h-14 bg-[var(--app-card-bg)] border-b border-[var(--app-card-border)] backdrop-blur-sm bg-opacity-95">
-        <div className="flex items-center space-x-2">
-          <Wallet className="z-10">
-            <ConnectWallet>
-              <Name className="text-inherit text-sm" />
-            </ConnectWallet>
-            <WalletDropdown>
-              <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                <Avatar />
-                <Name />
-                <Address />
-                <EthBalance />
-              </Identity>
-              <WalletDropdownDisconnect />
-            </WalletDropdown>
-          </Wallet>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          {/* Profile Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleViewProfile}
-            className="text-[var(--app-accent)] p-2"
-          >
-            <span className="text-sm">PROFILE</span>
-          </Button>
-          
-          {/* Save Frame Button */}
-          {saveFrameButton}
-        </div>
-      </header>
-
-      {/* Main Game Area - Full Height */}
-      <main className="flex-1 overflow-hidden">
-        <GameManager />
-      </main>
-
-      {/* Debug Footer - Only in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <footer className="px-4 py-2 bg-gray-100 border-t text-xs text-gray-600">
-          <div className="flex justify-between">
-            <span>FID: {context?.user?.fid || 'None'}</span>
-            <span>Added: {context?.client?.added ? 'Yes' : 'No'}</span>
-            <span>Location: {String(context?.location) || 'Unknown'}</span>
+    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] bg-gradient-to-br from-[var(--app-background)] via-[var(--app-background)] to-[var(--app-gray)]">
+      <div className="w-full max-w-md mx-auto px-4 py-2">
+        {/* Header */}
+        <header className="flex justify-between items-center mb-4 h-12">
+          <div className="flex items-center space-x-2">
+            <Wallet className="z-10">
+              <ConnectWallet>
+                <Name className="text-inherit text-sm" />
+              </ConnectWallet>
+              <WalletDropdown>
+                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                  <Avatar />
+                  <Name />
+                  <Address />
+                  <EthBalance />
+                </Identity>
+                <WalletDropdownDisconnect />
+              </WalletDropdown>
+            </Wallet>
           </div>
+          <div>{saveFrameButton}</div>
+        </header>
+
+        {/* Game Title */}
+        <div className="text-center mb-4">
+          <h1 className="text-2xl font-bold text-[var(--app-accent)] mb-1">🏎️ Vrooom</h1>
+          <p className="text-[var(--app-foreground-muted)] text-sm">
+            Racing on Base
+          </p>
+        </div>
+
+        {/* Main Game */}
+        <main className="flex-1">
+          <RacingGame />
+        </main>
+
+        {/* Transaction Footer */}
+        <footer className="mt-4 pt-4">
+          {address ? (
+            <Transaction
+              calls={calls}
+              onSuccess={handleTransactionSuccess}
+              onError={(error: TransactionError) =>
+                console.error("Transaction failed:", error)
+              }
+            >
+              <TransactionButton className="w-full text-white text-sm bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] rounded-lg py-3" />
+              <TransactionStatus>
+                <TransactionStatusAction />
+                <TransactionStatusLabel />
+              </TransactionStatus>
+              <TransactionToast className="mb-4">
+                <TransactionToastIcon />
+                <TransactionToastLabel />
+                <TransactionToastAction />
+              </TransactionToast>
+            </Transaction>
+          ) : (
+            <div className="text-center py-3 text-[var(--app-foreground-muted)] text-sm">
+              Connect wallet to make transactions
+            </div>
+          )}
         </footer>
-      )}
+      </div>
     </div>
   );
 }

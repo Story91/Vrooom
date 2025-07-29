@@ -3,20 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./DemoComponents";
 
-// Add interface definition for vroom controls
-interface VroomControls {
-  start: () => void;
-  pause: () => void;
-  reset: () => void;
-}
-
-// Extend Window interface to include vroomControls
-declare global {
-  interface Window {
-    vroomControls?: VroomControls;
-  }
-}
-
 export function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'playing' | 'paused' | 'menu'>('menu');
@@ -467,11 +453,7 @@ export function RacingGame() {
         drawGround($.ctx, $.state.offset, $.colors.ground, $.colors.groundDark, $.canvas.width);
         
         drawRoad($.settings.road.min + 6, $.settings.road.max + 36, 10, $.colors.roadLine);
-        if ($.ctx2) {
-          if ($.ctx2) {
         drawGround($.ctx2, $.state.offset, $.colors.roadLine, $.colors.road, $.canvas.width);
-      }
-        }
         drawRoad($.settings.road.min, $.settings.road.max, 10, $.colors.road);
         drawRoad(3, 24, 0, $.ctx.createPattern($.canvas2!, 'repeat')!);
         drawCar();
@@ -514,9 +496,7 @@ export function RacingGame() {
       drawBg();
       drawGround($.ctx, $.state.offset, $.colors.ground, $.colors.groundDark, $.canvas.width);
       drawRoad($.settings.road.min + 6, $.settings.road.max + 36, 10, $.colors.roadLine);
-      if ($.ctx2) {
-        drawGround($.ctx2, $.state.offset, $.colors.roadLine, $.colors.road, $.canvas.width);
-      }
+      drawGround($.ctx2, $.state.offset, $.colors.roadLine, $.colors.road, $.canvas.width);
       drawRoad($.settings.road.min, $.settings.road.max, 10, $.colors.road);
       drawRoad(3, 24, 0, $.ctx.createPattern($.canvas2!, 'repeat')!);
       drawCar();
@@ -532,7 +512,7 @@ export function RacingGame() {
     resetGame();
 
     // Expose controls for React
-    window.vroomControls = {
+    (window as any).vroomControls = {
       start: startGame,
       pause: pauseGame,
       reset: resetGame
@@ -549,14 +529,14 @@ export function RacingGame() {
 
   const handleStart = () => {
     if (gameState === 'menu' || gameState === 'paused') {
-      window.vroomControls?.start();
+      (window as any).vroomControls?.start();
     } else {
-      window.vroomControls?.pause();
+      (window as any).vroomControls?.pause();
     }
   };
 
   const handleReset = () => {
-    window.vroomControls?.reset();
+    (window as any).vroomControls?.reset();
   };
 
   return (
