@@ -11,7 +11,9 @@ interface GameControls {
 export function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameControlsRef = useRef<GameControls | null>(null);
-  const [gameState, setGameState] = useState<'playing' | 'paused' | 'menu'>('menu');
+  const [gameState, setGameState] = useState<'welcome' | 'countdown' | 'playing' | 'paused' | 'menu'>('welcome');
+  const [speed, setSpeed] = useState(0);
+  const [countdown, setCountdown] = useState(3);
   const leftControlRef = useRef<HTMLDivElement>(null);
   const rightControlRef = useRef<HTMLDivElement>(null);
 
@@ -202,8 +204,9 @@ export function RacingGame() {
       
       $.state.xpos = clamp($.state.xpos, -400, 400);
       
-      // Update React state
-      // setSpeed(Math.floor($.state.speed)); // This line was removed as per the edit hint
+      // Update React state - scale speed to realistic km/h (max ~110 km/h)
+      const displaySpeed = Math.min(Math.floor(($.state.speed / $.state.car.maxSpeed) * 110), 110);
+      setSpeed(displaySpeed);
     }
 
     function drawMountain(pos: number, height: number, width: number) {
@@ -493,7 +496,7 @@ export function RacingGame() {
       $.state.offset = 0;
       $.state.bgpos = 0;
       setGameState('menu');
-      // setSpeed(0); // This line was removed as per the edit hint
+      setSpeed(0);
       
       // Redraw initial state
       $.ctx.clearRect(0, 0, $.canvas.width, $.canvas.height);
@@ -547,7 +550,8 @@ export function RacingGame() {
 
     // Initial setup
     drawBg();
-    resetGame();
+    // Don't auto-start the game, wait for welcome screen interaction
+    // resetGame();
 
     // Store controls in ref instead of window
     gameControlsRef.current = {
@@ -575,8 +579,32 @@ export function RacingGame() {
     };
   }, []);
 
+  const startCountdown = () => {
+    // Initialize game first
+    if (gameControlsRef.current) {
+      gameControlsRef.current.reset();
+    }
+    
+    setGameState('countdown');
+    setCountdown(3);
+    
+    const countdownInterval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setGameState('playing');
+          gameControlsRef.current?.start();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   const handleStart = () => {
-    if (gameState === 'menu' || gameState === 'paused') {
+    if (gameState === 'welcome') {
+      startCountdown();
+    } else if (gameState === 'menu' || gameState === 'paused') {
       gameControlsRef.current?.start();
     } else {
       gameControlsRef.current?.pause();
@@ -595,22 +623,38 @@ export function RacingGame() {
         />
         
         {/* Game overlay */}
-        {gameState === 'menu' && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
-            <button 
-              onClick={handleStart} 
-              className="w-full h-full text-center text-white"
-            >
-              <h2 className="text-2xl font-bold mb-4">🏎️ Racing Game</h2>
-              <p className="text-sm mb-4">Tap to Start</p>
-            </button>
+        {gameState === 'welcome' && (
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center rounded-lg">
+            <div className="text-center text-white animate-pulse">
+              <div className="mb-8">
+                <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 mb-4 drop-shadow-2xl">
+                  VROOOM
+                </h1>
+                <div className="flex justify-center items-center space-x-2 text-2xl font-bold text-yellow-400">
+                  <span>🏎️</span>
+                  <span className="text-white">RACING</span>
+                  <span>🏁</span>
+                </div>
+              </div>
+              <button 
+                onClick={handleStart} 
+                className="bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-4 px-8 rounded-full text-xl shadow-2xl transform hover:scale-105 transition-all duration-200 border-2 border-red-300"
+              >
+                🚀 START RACE
+              </button>
+              <p className="text-gray-400 text-sm mt-4">Tap to begin your racing adventure</p>
+            </div>
           </div>
         )}
         
-        {gameState === 'paused' && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+        {gameState === 'countdown' && (
+          <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center rounded-lg">
             <div className="text-center text-white">
-              <h2 className="text-xl font-bold">⏸️ PAUSED</h2>
+              {countdown > 0 ? (
+                <h2 className="text-8xl font-black text-red-500 drop-shadow-2xl animate-bounce">{countdown}</h2>
+              ) : (
+                <h2 className="text-6xl font-black text-green-400 drop-shadow-2xl animate-pulse">GO!</h2>
+              )}
             </div>
           </div>
         )}
@@ -620,9 +664,6 @@ export function RacingGame() {
           <>
             <div className="absolute top-4 left-4 text-white font-bold text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
               <p>LAP: 1/3</p>
-            </div>
-            <div className="absolute top-4 right-4 text-white font-bold text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
-              <p>POS: 1/8</p>
             </div>
             
             {/* Pause Button */}
@@ -636,11 +677,35 @@ export function RacingGame() {
             >
               <div className="text-white text-lg font-bold">⏸</div>
             </div>
+            
+            <div className="absolute top-4 right-4 text-white font-bold text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
+              <p>POS: 1/8</p>
+            </div>
+            
+            {/* Speed Display - under speedometer */}
+            <div className="absolute top-52 right-8 text-white font-black text-xl text-center">
+              <div className="text-3xl font-black text-blue-400 drop-shadow-lg">{speed}</div>
+              <div className="text-xs text-gray-300 font-bold">KM/H</div>
+            </div>
           </>
         )}
 
+        {gameState === 'paused' && (
+          <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-lg">
+            <div className="text-center text-white">
+              <h2 className="text-4xl font-bold mb-6">⏸️ PAUSED</h2>
+              <button 
+                onClick={() => gameControlsRef.current?.start()}
+                className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-3 px-6 rounded-full text-lg shadow-2xl transform hover:scale-105 transition-all duration-200 border-2 border-green-300"
+              >
+                ▶️ CONTINUE
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Touch Controls */}
-        {(gameState === 'playing' || gameState === 'menu') && (
+        {gameState === 'playing' && (
           <>
             {/* Left Control */}
             <div 
