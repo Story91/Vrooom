@@ -3,8 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./DemoComponents";
 
+interface GameControls {
+  start: () => void;
+  pause: () => void;
+  reset: () => void;
+}
+
 export function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gameControlsRef = useRef<GameControls | null>(null);
   const [gameState, setGameState] = useState<'playing' | 'paused' | 'menu'>('menu');
   const [speed, setSpeed] = useState(0);
 
@@ -511,8 +518,8 @@ export function RacingGame() {
     drawBg();
     resetGame();
 
-    // Expose controls for React
-    (window as any).vroomControls = {
+    // Store controls in ref instead of window
+    gameControlsRef.current = {
       start: startGame,
       pause: pauseGame,
       reset: resetGame
@@ -529,14 +536,14 @@ export function RacingGame() {
 
   const handleStart = () => {
     if (gameState === 'menu' || gameState === 'paused') {
-      (window as any).vroomControls?.start();
+      gameControlsRef.current?.start();
     } else {
-      (window as any).vroomControls?.pause();
+      gameControlsRef.current?.pause();
     }
   };
 
   const handleReset = () => {
-    (window as any).vroomControls?.reset();
+    gameControlsRef.current?.reset();
   };
 
   return (
