@@ -106,10 +106,10 @@ export default function App() {
   }, [sendNotification]);
 
   return (
-    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] bg-gradient-to-br from-[var(--app-background)] via-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-md mx-auto px-4 py-2">
+    <div className="flex flex-col h-screen font-sans text-[var(--app-foreground)] bg-gradient-to-br from-[var(--app-background)] via-[var(--app-background)] to-[var(--app-gray)]">
+      <div className="w-full max-w-md mx-auto flex flex-col h-full">
         {/* Header */}
-        <header className="flex justify-between items-center mb-4 h-12">
+        <header className="flex justify-between items-center mb-4 h-12 px-4 shrink-0">
           <div className="flex items-center space-x-2">
             <Wallet className="z-10">
               <ConnectWallet>
@@ -129,21 +129,13 @@ export default function App() {
           <div>{saveFrameButton}</div>
         </header>
 
-        {/* Game Title */}
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-bold text-[var(--app-accent)] mb-1">🏎️ Vrooom</h1>
-          <p className="text-[var(--app-foreground-muted)] text-sm">
-            Racing on Base
-          </p>
-        </div>
-
         {/* Main Game */}
-        <main className="flex-1">
+        <main className="flex-1 relative">
           <RacingGame />
         </main>
 
         {/* Transaction Footer */}
-        <footer className="mt-4 pt-4">
+        <footer className="mt-4 pt-4 px-4 shrink-0">
           {address ? (
             <Transaction
               calls={calls}

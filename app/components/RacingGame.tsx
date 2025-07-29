@@ -14,6 +14,8 @@ export function RacingGame() {
   const gameControlsRef = useRef<GameControls | null>(null);
   const [gameState, setGameState] = useState<'playing' | 'paused' | 'menu'>('menu');
   const [speed, setSpeed] = useState(0);
+  const leftControlRef = useRef<HTMLDivElement>(null);
+  const rightControlRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -146,14 +148,11 @@ export function RacingGame() {
       const move = $.state.speed * 0.01;
       let newCurve = 0;
       
-      if($.state.keypress.up) {
-        $.state.speed += $.state.car.acc - ($.state.speed * 0.015);
-      } else if ($.state.speed > 0) {
-        $.state.speed -= $.state.car.friction;
-      }
-      
-      if($.state.keypress.down && $.state.speed > 0) {
-        $.state.speed -= 1;
+      // Auto-accelerate to a constant speed
+      if ($.state.speed < $.state.car.maxSpeed / 1.5) {
+        $.state.speed += $.state.car.acc;
+      } else {
+        $.state.speed -= $.state.car.friction / 2;
       }
       
       // Left and right
@@ -514,6 +513,40 @@ export function RacingGame() {
     window.addEventListener("keydown", keyDown, false);
     window.addEventListener("keyup", keyUp, false);
 
+    const leftControl = leftControlRef.current;
+    const rightControl = rightControlRef.current;
+
+    const handleLeftPress = (e: TouchEvent | MouseEvent) => { 
+      e.preventDefault(); 
+      $.state.keypress.left = true; 
+    };
+    const handleLeftRelease = (e: TouchEvent | MouseEvent) => { 
+      e.preventDefault(); 
+      $.state.keypress.left = false; 
+    };
+    const handleRightPress = (e: TouchEvent | MouseEvent) => { 
+      e.preventDefault(); 
+      $.state.keypress.right = true; 
+    };
+    const handleRightRelease = (e: TouchEvent | MouseEvent) => { 
+      e.preventDefault(); 
+      $.state.keypress.right = false; 
+    };
+
+    if (leftControl && rightControl) {
+      // Touch events for mobile
+      leftControl.addEventListener('touchstart', handleLeftPress, { passive: false });
+      leftControl.addEventListener('touchend', handleLeftRelease, { passive: false });
+      rightControl.addEventListener('touchstart', handleRightPress, { passive: false });
+      rightControl.addEventListener('touchend', handleRightRelease, { passive: false });
+      
+      // Mouse events for desktop compatibility
+      leftControl.addEventListener('mousedown', handleLeftPress);
+      leftControl.addEventListener('mouseup', handleLeftRelease);
+      rightControl.addEventListener('mousedown', handleRightPress);
+      rightControl.addEventListener('mouseup', handleRightRelease);
+    }
+
     // Initial setup
     drawBg();
     resetGame();
@@ -528,6 +561,16 @@ export function RacingGame() {
     return () => {
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
+      if (leftControl && rightControl) {
+        leftControl.removeEventListener('touchstart', handleLeftPress);
+        leftControl.removeEventListener('touchend', handleLeftRelease);
+        rightControl.removeEventListener('touchstart', handleRightPress);
+        rightControl.removeEventListener('touchend', handleRightRelease);
+        leftControl.removeEventListener('mousedown', handleLeftPress);
+        leftControl.removeEventListener('mouseup', handleLeftRelease);
+        rightControl.removeEventListener('mousedown', handleRightPress);
+        rightControl.removeEventListener('mouseup', handleRightRelease);
+      }
       if (animationId) {
         cancelAnimationFrame(animationId);
       }
@@ -547,28 +590,26 @@ export function RacingGame() {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4 w-full">
-      {/* Game stats */}
-      <div className="flex justify-center w-full text-sm font-bold">
-        <div className="text-[var(--app-foreground)]">Speed: {speed} km/h</div>
-      </div>
-      
-      {/* Game canvas */}
-      <div className="relative">
+    <div className="relative w-full h-full flex items-center justify-center">
+      {/* Game canvas container */}
+      <div className="relative w-[400px] h-[600px] border border-[var(--app-card-border)] rounded-lg shadow-xl overflow-hidden">
         <canvas 
           ref={canvasRef}
           width={400}
           height={600}
-          className="border border-[var(--app-card-border)] rounded-lg shadow-xl"
+          className="absolute top-0 left-0"
         />
         
         {/* Game overlay */}
         {gameState === 'menu' && (
           <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
-            <div className="text-center text-white">
+            <button 
+              onClick={handleStart} 
+              className="w-full h-full text-center text-white"
+            >
               <h2 className="text-2xl font-bold mb-4">🏎️ Racing Game</h2>
-              <p className="text-sm mb-4">Use arrow keys to control</p>
-            </div>
+              <p className="text-sm mb-4">Tap to Start</p>
+            </button>
           </div>
         )}
         
@@ -579,38 +620,61 @@ export function RacingGame() {
             </div>
           </div>
         )}
-      </div>
 
-      {/* Hamburger Menu Controls */}
-      <div className="w-full max-w-sm">
-        <div className="bg-[var(--app-card-bg)] backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[var(--app-card-border)]">
-          <div className="flex items-center justify-center space-x-4">
-            {/* Play/Pause Button */}
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleStart}
-              className="flex-1"
-            >
-              {gameState === 'playing' ? '⏸️ Pause' : '▶️ Start'}
-            </Button>
+        {/* HUD */}
+        {gameState === 'playing' && (
+          <>
+            <div className="absolute top-4 left-4 text-white font-bold text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
+              <p>LAP: 1/3</p>
+            </div>
+            <div className="absolute top-4 right-4 text-white font-bold text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
+              <p>POS: 1/8</p>
+            </div>
             
-            {/* Reset Button */}
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={handleReset}
-              className="flex-1"
+            {/* Pause Button */}
+            <div 
+              onClick={() => gameControlsRef.current?.pause()}
+              className="absolute top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-900 rounded-full flex items-center justify-center shadow-2xl border-2 border-white border-opacity-30 backdrop-blur-sm active:scale-95 transition-transform duration-100 cursor-pointer"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, rgba(75, 85, 99, 0.9), rgba(31, 41, 55, 0.95))',
+                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1)'
+              }}
             >
-              🔄 Reset
-            </Button>
-          </div>
-          
-          {/* Controls info */}
-          <div className="mt-3 text-center text-xs text-[var(--app-foreground-muted)]">
-            <p>🎮 Use ← → ↑ ↓ arrow keys</p>
-          </div>
-        </div>
+              <div className="text-white text-lg font-bold">⏸</div>
+            </div>
+          </>
+        )}
+
+        {/* Touch Controls */}
+        {(gameState === 'playing' || gameState === 'menu') && (
+          <>
+            {/* Left Control */}
+            <div 
+              ref={leftControlRef}
+              className="absolute bottom-8 left-8 w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-white border-opacity-30 backdrop-blur-sm active:scale-95 transition-transform duration-100"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.95))',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 2px 8px rgba(255, 255, 255, 0.2)'
+              }}
+            >
+              <div className="text-white text-2xl font-bold drop-shadow-lg">←</div>
+              <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-200"></div>
+            </div>
+            
+            {/* Right Control */}
+            <div 
+              ref={rightControlRef}
+              className="absolute bottom-8 right-8 w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-white border-opacity-30 backdrop-blur-sm active:scale-95 transition-transform duration-100"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.95))',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 2px 8px rgba(255, 255, 255, 0.2)'
+              }}
+            >
+              <div className="text-white text-2xl font-bold drop-shadow-lg">→</div>
+              <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-200"></div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
