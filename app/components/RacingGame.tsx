@@ -11,11 +11,32 @@ interface GameControls {
 export function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameControlsRef = useRef<GameControls | null>(null);
-  const [gameState, setGameState] = useState<'welcome' | 'countdown' | 'playing' | 'paused' | 'menu'>('welcome');
-  const [speed, setSpeed] = useState(0);
-  const [countdown, setCountdown] = useState(3);
+  const [gameState, setGameState] = useState<'playing' | 'paused' | 'menu'>('menu');
   const leftControlRef = useRef<HTMLDivElement>(null);
   const rightControlRef = useRef<HTMLDivElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+
+  // Handle canvas resizing
+  useEffect(() => {
+    const handleResize = () => {
+      setCanvasSize({
+        width: window.innerWidth,
+        height: window.innerHeight - 120 // Account for header and footer
+      });
+    };
+
+    // Set initial size
+    if (typeof window !== 'undefined') {
+      handleResize();
+      window.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -44,8 +65,8 @@ export function RacingGame() {
           max: 120
         },
         road: {
-          min: 60,  // Adjusted for narrower canvas
-          max: 450, // Adjusted for narrower canvas
+          min: Math.max(60, canvasSize.width * 0.1),  // Scale with canvas width
+          max: Math.min(450, canvasSize.width * 0.8), // Scale with canvas width
         }
       },
       state: {
@@ -77,8 +98,8 @@ export function RacingGame() {
     };
 
     $.canvas2 = document.createElement('canvas');
-    $.canvas2.width = $.canvas.width;
-    $.canvas2.height = $.canvas.height;
+    $.canvas2.width = canvasSize.width;
+    $.canvas2.height = canvasSize.height;
     $.ctx2 = $.canvas2.getContext('2d')!;
 
     let gameRunning = false;
@@ -204,9 +225,8 @@ export function RacingGame() {
       
       $.state.xpos = clamp($.state.xpos, -400, 400);
       
-      // Update React state - scale speed to realistic km/h (max ~110 km/h)
-      const displaySpeed = Math.min(Math.floor(($.state.speed / $.state.car.maxSpeed) * 110), 110);
-      setSpeed(displaySpeed);
+      // Update React state
+      // setSpeed(Math.floor($.state.speed)); // This line was removed as per the edit hint
     }
 
     function drawMountain(pos: number, height: number, width: number) {
@@ -278,7 +298,7 @@ export function RacingGame() {
 
     function drawCarBody(ctx: CanvasRenderingContext2D) {
       const startX = ($.canvas.width / 2) - 80; // Centered for our canvas
-      const startY = $.canvas.height - 200;
+      const startY = $.canvas.height - Math.min(200, $.canvas.height * 0.33);
       const lights = [10, 26, 134, 152];
       let lightsY = 0;
       
@@ -345,7 +365,7 @@ export function RacingGame() {
       const carWidth = 160;
       const carHeight = 50;
       const carX = ($.canvas.width / 2) - (carWidth / 2);
-      const carY = $.canvas.height - 180;
+      const carY = $.canvas.height - Math.min(180, $.canvas.height * 0.3);
       
       // shadow
       roundedRect($.ctx, "rgba(0, 0, 0, 0.35)", carX - 1 + $.state.turn, carY + (carHeight - 35), carWidth + 10, carHeight, 9);
@@ -464,7 +484,7 @@ export function RacingGame() {
         drawRoad($.settings.road.min, $.settings.road.max, 10, $.colors.road);
         drawRoad(3, 24, 0, $.ctx.createPattern($.canvas2!, 'repeat')!);
         drawCar();
-        drawHUD($.ctx, 300, 150, $.colors.hud);
+        drawHUD($.ctx, $.canvas.width - 100, 100, $.colors.hud);
         
         animationId = requestAnimationFrame(draw);
       }, 1000 / $.settings.fps);
@@ -496,7 +516,7 @@ export function RacingGame() {
       $.state.offset = 0;
       $.state.bgpos = 0;
       setGameState('menu');
-      setSpeed(0);
+      // setSpeed(0); // This line was removed as per the edit hint
       
       // Redraw initial state
       $.ctx.clearRect(0, 0, $.canvas.width, $.canvas.height);
@@ -507,7 +527,7 @@ export function RacingGame() {
       drawRoad($.settings.road.min, $.settings.road.max, 10, $.colors.road);
       drawRoad(3, 24, 0, $.ctx.createPattern($.canvas2!, 'repeat')!);
       drawCar();
-      drawHUD($.ctx, 300, 150, $.colors.hud);
+      drawHUD($.ctx, $.canvas.width - 100, 100, $.colors.hud);
     }
 
     // Event listeners
@@ -550,8 +570,7 @@ export function RacingGame() {
 
     // Initial setup
     drawBg();
-    // Don't auto-start the game, wait for welcome screen interaction
-    // resetGame();
+    resetGame();
 
     // Store controls in ref instead of window
     gameControlsRef.current = {
@@ -577,34 +596,10 @@ export function RacingGame() {
         cancelAnimationFrame(animationId);
       }
     };
-  }, []);
-
-  const startCountdown = () => {
-    // Initialize game first
-    if (gameControlsRef.current) {
-      gameControlsRef.current.reset();
-    }
-    
-    setGameState('countdown');
-    setCountdown(3);
-    
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          setGameState('playing');
-          gameControlsRef.current?.start();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  }, [canvasSize]);
 
   const handleStart = () => {
-    if (gameState === 'welcome') {
-      startCountdown();
-    } else if (gameState === 'menu' || gameState === 'paused') {
+    if (gameState === 'menu' || gameState === 'paused') {
       gameControlsRef.current?.start();
     } else {
       gameControlsRef.current?.pause();
@@ -612,50 +607,44 @@ export function RacingGame() {
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      {/* Game canvas container */}
-      <div className="relative w-[400px] h-[600px] border border-[var(--app-card-border)] rounded-lg shadow-xl overflow-hidden">
+    <div className="relative w-full h-full">
+      {/* Game canvas container - Full Screen */}
+      <div className="relative w-full h-full overflow-hidden">
         <canvas 
           ref={canvasRef}
-          width={400}
-          height={600}
-          className="absolute top-0 left-0"
+          width={canvasSize.width}
+          height={canvasSize.height}
+          className="absolute top-0 left-0 w-full h-full"
+          style={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'cover'
+          }}
         />
         
         {/* Game overlay */}
-        {gameState === 'welcome' && (
-          <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center rounded-lg">
-            <div className="text-center text-white animate-pulse">
-              <div className="mb-8">
-                <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 mb-4 drop-shadow-2xl">
-                  VROOOM
-                </h1>
-                <div className="flex justify-center items-center space-x-2 text-2xl font-bold text-yellow-400">
-                  <span>🏎️</span>
-                  <span className="text-white">RACING</span>
-                  <span>🏁</span>
-                </div>
-              </div>
-              <button 
-                onClick={handleStart} 
-                className="bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-4 px-8 rounded-full text-xl shadow-2xl transform hover:scale-105 transition-all duration-200 border-2 border-red-300"
-              >
-                🚀 START RACE
-              </button>
-              <p className="text-gray-400 text-sm mt-4">Tap to begin your racing adventure</p>
-            </div>
+        {gameState === 'menu' && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <button 
+              onClick={handleStart} 
+              className="w-full h-full text-center text-white"
+            >
+              <h2 className="text-4xl font-bold mb-4">🏎️ Racing Game</h2>
+              <p className="text-lg mb-4">Tap to Start</p>
+            </button>
           </div>
         )}
         
-        {gameState === 'countdown' && (
-          <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center rounded-lg">
-            <div className="text-center text-white">
-              {countdown > 0 ? (
-                <h2 className="text-8xl font-black text-red-500 drop-shadow-2xl animate-bounce">{countdown}</h2>
-              ) : (
-                <h2 className="text-6xl font-black text-green-400 drop-shadow-2xl animate-pulse">GO!</h2>
-              )}
-            </div>
+        {gameState === 'paused' && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <button 
+              onClick={handleStart} 
+              className="text-center text-white bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 px-8 py-4 rounded-2xl shadow-2xl border border-white border-opacity-30 backdrop-blur-sm active:scale-95 transition-all duration-200"
+            >
+              <h2 className="text-3xl font-bold mb-2">⏸️ PAUSED</h2>
+              <p className="text-lg">Tap to Resume</p>
+              <div className="text-4xl mt-2">▶️</div>
+            </button>
           </div>
         )}
 
@@ -664,6 +653,9 @@ export function RacingGame() {
           <>
             <div className="absolute top-4 left-4 text-white font-bold text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
               <p>LAP: 1/3</p>
+            </div>
+            <div className="absolute top-4 right-4 text-white font-bold text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
+              <p>POS: 1/8</p>
             </div>
             
             {/* Pause Button */}
@@ -677,35 +669,11 @@ export function RacingGame() {
             >
               <div className="text-white text-lg font-bold">⏸</div>
             </div>
-            
-            <div className="absolute top-4 right-4 text-white font-bold text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
-              <p>POS: 1/8</p>
-            </div>
-            
-            {/* Speed Display - under speedometer */}
-            <div className="absolute top-52 right-8 text-white font-black text-xl text-center">
-              <div className="text-3xl font-black text-blue-400 drop-shadow-lg">{speed}</div>
-              <div className="text-xs text-gray-300 font-bold">KM/H</div>
-            </div>
           </>
         )}
 
-        {gameState === 'paused' && (
-          <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-lg">
-            <div className="text-center text-white">
-              <h2 className="text-4xl font-bold mb-6">⏸️ PAUSED</h2>
-              <button 
-                onClick={() => gameControlsRef.current?.start()}
-                className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-3 px-6 rounded-full text-lg shadow-2xl transform hover:scale-105 transition-all duration-200 border-2 border-green-300"
-              >
-                ▶️ CONTINUE
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Touch Controls */}
-        {gameState === 'playing' && (
+        {(gameState === 'playing' || gameState === 'menu') && (
           <>
             {/* Left Control */}
             <div 
