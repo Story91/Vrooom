@@ -15,9 +15,6 @@ import {
   ConnectWallet,
   Wallet,
   WalletDropdown,
-  WalletDropdownBasename, 
-  WalletDropdownFundLink, 
-  WalletDropdownLink, 
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
 import {
@@ -110,71 +107,61 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen font-sans text-[var(--app-foreground)] bg-gradient-to-br from-[var(--app-background)] via-[var(--app-background)] to-[var(--app-gray)]">
-      {/* Header */}
-      <header className="flex justify-between items-center h-16 px-4 shrink-0 relative z-20 bg-black bg-opacity-20 backdrop-blur-sm border-b border-white border-opacity-10">
-        <div className="flex items-center space-x-2">
-          <Wallet className="z-10">
-            <ConnectWallet className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-full font-semibold shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95 border border-white border-opacity-20">
-              <Avatar className="h-6 w-6" />
-              <Name className="text-white text-sm font-medium" />
-            </ConnectWallet>
-            <WalletDropdown>
-              <Identity
-                className="px-4 pt-3 pb-2"
-                hasCopyAddressOnClick
-              >
-                <Avatar />
-                <Name />
-                <Address />
-                <EthBalance />
-              </Identity>
-              <WalletDropdownBasename />
-              <WalletDropdownLink
-                icon="wallet"
-                href="https://keys.coinbase.com"
-              >
-                Wallet
-              </WalletDropdownLink>
-              <WalletDropdownFundLink />
-              <WalletDropdownDisconnect />
-            </WalletDropdown>
-          </Wallet>
-        </div>
-        <div>{saveFrameButton}</div>
-      </header>
-
-      {/* Main Game - Full Screen */}
-      <main className="flex-1 relative overflow-hidden">
-        <RacingGame />
-      </main>
-
-      {/* Transaction Footer */}
-      <footer className="px-4 py-3 shrink-0 bg-black bg-opacity-20 backdrop-blur-sm border-t border-white border-opacity-10">
-        {address ? (
-          <Transaction
-            calls={calls}
-            onSuccess={handleTransactionSuccess}
-            onError={(error: TransactionError) =>
-              console.error("Transaction failed:", error)
-            }
-          >
-            <TransactionButton className="w-full max-w-md mx-auto text-white text-sm bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] rounded-lg py-3" />
-            <TransactionStatus>
-              <TransactionStatusAction />
-              <TransactionStatusLabel />
-            </TransactionStatus>
-            <TransactionToast className="mb-4">
-              <TransactionToastIcon />
-              <TransactionToastLabel />
-              <TransactionToastAction />
-            </TransactionToast>
-          </Transaction>
-        ) : (
-          <div className="text-center py-3 text-[var(--app-foreground-muted)] text-sm max-w-md mx-auto">
-            Connect wallet to make transactions
+      <div className="w-full max-w-md mx-auto flex flex-col h-full">
+        {/* Header */}
+        <header className="flex justify-between items-center mb-4 h-12 px-4 shrink-0">
+          <div className="flex items-center space-x-2">
+            <Wallet className="z-10">
+              <ConnectWallet>
+                <Name className="text-inherit text-sm" />
+              </ConnectWallet>
+              <WalletDropdown>
+                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                  <Avatar />
+                  <Name />
+                  <Address />
+                  <EthBalance />
+                </Identity>
+                <WalletDropdownDisconnect />
+              </WalletDropdown>
+            </Wallet>
           </div>
-        )}
-      </footer>
+          <div>{saveFrameButton}</div>
+        </header>
+
+        {/* Main Game */}
+        <main className="flex-1 relative">
+          <RacingGame />
+        </main>
+
+        {/* Transaction Footer */}
+        <footer className="mt-4 pt-4 px-4 shrink-0">
+          {address ? (
+            <Transaction
+              calls={calls}
+              onSuccess={handleTransactionSuccess}
+              onError={(error: TransactionError) =>
+                console.error("Transaction failed:", error)
+              }
+            >
+              <TransactionButton className="w-full text-white text-sm bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] rounded-lg py-3" />
+              <TransactionStatus>
+                <TransactionStatusAction />
+                <TransactionStatusLabel />
+              </TransactionStatus>
+              <TransactionToast className="mb-4">
+                <TransactionToastIcon />
+                <TransactionToastLabel />
+                <TransactionToastAction />
+              </TransactionToast>
+            </Transaction>
+          ) : (
+            <div className="text-center py-3 text-[var(--app-foreground-muted)] text-sm">
+              Connect wallet to make transactions
+            </div>
+          )}
+        </footer>
+      </div>
     </div>
   );
 }

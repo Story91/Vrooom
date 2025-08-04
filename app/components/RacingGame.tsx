@@ -14,29 +14,6 @@ export function RacingGame() {
   const [gameState, setGameState] = useState<'playing' | 'paused' | 'menu'>('menu');
   const leftControlRef = useRef<HTMLDivElement>(null);
   const rightControlRef = useRef<HTMLDivElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
-
-  // Handle canvas resizing
-  useEffect(() => {
-    const handleResize = () => {
-      setCanvasSize({
-        width: window.innerWidth,
-        height: window.innerHeight - 120 // Account for header and footer
-      });
-    };
-
-    // Set initial size
-    if (typeof window !== 'undefined') {
-      handleResize();
-      window.addEventListener('resize', handleResize);
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', handleResize);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -65,8 +42,8 @@ export function RacingGame() {
           max: 120
         },
         road: {
-          min: Math.max(60, canvasSize.width * 0.1),  // Scale with canvas width
-          max: Math.min(450, canvasSize.width * 0.8), // Scale with canvas width
+          min: 60,  // Adjusted for narrower canvas
+          max: 450, // Adjusted for narrower canvas
         }
       },
       state: {
@@ -98,8 +75,8 @@ export function RacingGame() {
     };
 
     $.canvas2 = document.createElement('canvas');
-    $.canvas2.width = canvasSize.width;
-    $.canvas2.height = canvasSize.height;
+    $.canvas2.width = $.canvas.width;
+    $.canvas2.height = $.canvas.height;
     $.ctx2 = $.canvas2.getContext('2d')!;
 
     let gameRunning = false;
@@ -298,7 +275,7 @@ export function RacingGame() {
 
     function drawCarBody(ctx: CanvasRenderingContext2D) {
       const startX = ($.canvas.width / 2) - 80; // Centered for our canvas
-      const startY = $.canvas.height - Math.min(200, $.canvas.height * 0.33);
+      const startY = $.canvas.height - 200;
       const lights = [10, 26, 134, 152];
       let lightsY = 0;
       
@@ -365,7 +342,7 @@ export function RacingGame() {
       const carWidth = 160;
       const carHeight = 50;
       const carX = ($.canvas.width / 2) - (carWidth / 2);
-      const carY = $.canvas.height - Math.min(180, $.canvas.height * 0.3);
+      const carY = $.canvas.height - 180;
       
       // shadow
       roundedRect($.ctx, "rgba(0, 0, 0, 0.35)", carX - 1 + $.state.turn, carY + (carHeight - 35), carWidth + 10, carHeight, 9);
@@ -484,7 +461,7 @@ export function RacingGame() {
         drawRoad($.settings.road.min, $.settings.road.max, 10, $.colors.road);
         drawRoad(3, 24, 0, $.ctx.createPattern($.canvas2!, 'repeat')!);
         drawCar();
-        drawHUD($.ctx, $.canvas.width - 100, 100, $.colors.hud);
+        drawHUD($.ctx, 300, 150, $.colors.hud);
         
         animationId = requestAnimationFrame(draw);
       }, 1000 / $.settings.fps);
@@ -527,7 +504,7 @@ export function RacingGame() {
       drawRoad($.settings.road.min, $.settings.road.max, 10, $.colors.road);
       drawRoad(3, 24, 0, $.ctx.createPattern($.canvas2!, 'repeat')!);
       drawCar();
-      drawHUD($.ctx, $.canvas.width - 100, 100, $.colors.hud);
+      drawHUD($.ctx, 300, 150, $.colors.hud);
     }
 
     // Event listeners
@@ -596,7 +573,7 @@ export function RacingGame() {
         cancelAnimationFrame(animationId);
       }
     };
-  }, [canvasSize]);
+  }, []);
 
   const handleStart = () => {
     if (gameState === 'menu' || gameState === 'paused') {
@@ -607,44 +584,34 @@ export function RacingGame() {
   };
 
   return (
-    <div className="relative w-full h-full">
-      {/* Game canvas container - Full Screen */}
-      <div className="relative w-full h-full overflow-hidden">
+    <div className="relative w-full h-full flex items-center justify-center">
+      {/* Game canvas container */}
+      <div className="relative w-[400px] h-[600px] border border-[var(--app-card-border)] rounded-lg shadow-xl overflow-hidden">
         <canvas 
           ref={canvasRef}
-          width={canvasSize.width}
-          height={canvasSize.height}
-          className="absolute top-0 left-0 w-full h-full"
-          style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            objectFit: 'cover'
-          }}
+          width={400}
+          height={600}
+          className="absolute top-0 left-0"
         />
         
         {/* Game overlay */}
         {gameState === 'menu' && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
             <button 
               onClick={handleStart} 
               className="w-full h-full text-center text-white"
             >
-              <h2 className="text-4xl font-bold mb-4">🏎️ Racing Game</h2>
-              <p className="text-lg mb-4">Tap to Start</p>
+              <h2 className="text-2xl font-bold mb-4">🏎️ Racing Game</h2>
+              <p className="text-sm mb-4">Tap to Start</p>
             </button>
           </div>
         )}
         
         {gameState === 'paused' && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <button 
-              onClick={handleStart} 
-              className="text-center text-white bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 px-8 py-4 rounded-2xl shadow-2xl border border-white border-opacity-30 backdrop-blur-sm active:scale-95 transition-all duration-200"
-            >
-              <h2 className="text-3xl font-bold mb-2">⏸️ PAUSED</h2>
-              <p className="text-lg">Tap to Resume</p>
-              <div className="text-4xl mt-2">▶️</div>
-            </button>
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+            <div className="text-center text-white">
+              <h2 className="text-xl font-bold">⏸️ PAUSED</h2>
+            </div>
           </div>
         )}
 
